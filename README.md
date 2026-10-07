@@ -1,3 +1,5 @@
+**This project is making heavily use of AI Agents, if you have a problem with that just don't use it. Thanks!**
+
 # `revofmt-zed`, revo formatting in zed
 
 revo formatting in zed. run `editor: format` on an unsaved buffer.
