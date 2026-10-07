@@ -1,15 +1,27 @@
 {
   "languages": {
     "Revo": {
+      "language_servers": [
+        "revofmt-lsp",
+        "..."
+      ],
       "formatter": {
-        "external": {
-          "command": "revofmt",
-          "arguments": ["--indent-width", "2", "--line-width", "80", "-"]
+        "language_server": {
+          "name": "revofmt-lsp"
         }
       },
       "format_on_save": "off",
       "remove_trailing_whitespace_on_save": false,
       "ensure_final_newline_on_save": false
+    }
+  },
+  "lsp": {
+    "revofmt-lsp": {
+      "initialization_options": {
+        "indentWidth": 2,
+        "lineWidth": 80,
+        "timeoutMs": 5000
+      }
     }
   }
 }

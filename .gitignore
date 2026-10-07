@@ -1,2 +1,6 @@
 __pycache__/
 *.py[cod]
+/target/
+/dist/
+/extension.wasm
+/node_modules/

@@ -1,7 +1,16 @@
-id = "revofmt"
-name = "Revo Formatter"
-version = "0.1.0"
+id = "revofmt-lsp"
+name = "Revo Formatter LSP"
+version = "0.2.0"
 schema_version = 1
 authors = ["Idan Gilboa"]
-description = "Revo file recognition with documented native revofmt formatting settings"
+description = "Formats unsaved Revo buffers using the installed revofmt CLI"
 repository = "https://github.com/w0x7y/revofmt-zed"
+
+[lib]
+kind = "Rust"
+version = "0.7.0"
+
+[language_servers.revofmt-lsp]
+name = "Revo Formatter LSP"
+languages = ["Revo"]
+language_ids = { Revo = "revo" }

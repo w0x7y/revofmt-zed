@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check declarative Zed metadata and the configured CLI, not a running editor."""
+"""Check language-server metadata and its real formatter CLI contract."""
 
 import hashlib
 import json
@@ -23,36 +23,34 @@ class MetadataTests(unittest.TestCase):
 
     def revo_settings(self):
         path = PACKAGE / "settings.json"
-        self.assertTrue(path.is_file(), "missing native external formatter settings")
+        self.assertTrue(path.is_file(), "missing language-server formatter settings")
         settings = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual(set(settings), {"languages"})
+        self.assertEqual(set(settings), {"languages", "lsp"})
         self.assertEqual(set(settings["languages"]), {"Revo"})
         return settings["languages"]["Revo"]
 
-    def test_manifest_registers_a_declarative_extension(self):
+    def test_manifest_registers_only_a_formatting_server(self):
         manifest = self.read_toml("extension.toml")
-        self.assertEqual(manifest["id"], "revofmt")
+        self.assertEqual(manifest["id"], "revofmt-lsp")
         self.assertEqual(manifest["schema_version"], 1)
-        self.assertTrue(manifest["name"])
-        self.assertTrue(manifest["version"])
-        self.assertTrue(manifest["authors"])
-        for procedural_feature in ("lib", "grammars", "language_servers"):
-            self.assertNotIn(procedural_feature, manifest)
-        self.assertFalse((PACKAGE / "Cargo.toml").exists())
+        self.assertEqual(manifest["version"], "0.2.0")
+        self.assertEqual(manifest["lib"]["version"], "0.7.0")
+        self.assertEqual(set(manifest["language_servers"]), {"revofmt-lsp"})
+        self.assertEqual(manifest["language_servers"]["revofmt-lsp"]["languages"], ["Revo"])
+        self.assertNotIn("grammars", manifest)
+        self.assertNotIn("languages", manifest)
 
-    def test_recognizes_both_revo_suffixes_without_a_grammar(self):
-        config = self.read_toml("languages/revo/config.toml")
-        self.assertEqual(config["name"], "Revo")
-        self.assertEqual(set(config["path_suffixes"]), {"rv", "revo"})
-        self.assertNotIn("grammar", config)
+    def test_language_registration_belongs_to_the_language_extension(self):
+        self.assertFalse((PACKAGE / "languages").exists())
+        self.assertEqual(self.revo_settings()["language_servers"], ["revofmt-lsp", "..."])
 
-    def test_external_formatter_reads_stdin_with_explicit_layout(self):
-        settings = self.revo_settings()
-        self.assertEqual(settings["formatter"], {
-            "external": {
-                "command": "revofmt",
-                "arguments": ["--indent-width", "2", "--line-width", "80", "-"],
-            }
+    def test_settings_select_the_formatting_server_with_explicit_layout(self):
+        self.assertEqual(self.revo_settings()["formatter"], {
+            "language_server": {"name": "revofmt-lsp"}
+        })
+        settings = json.loads((PACKAGE / "settings.json").read_text(encoding="utf-8"))
+        self.assertEqual(settings["lsp"]["revofmt-lsp"]["initialization_options"], {
+            "indentWidth": 2, "lineWidth": 80, "timeoutMs": 5000
         })
 
     def test_save_is_opt_in_and_cli_owns_whitespace(self):
@@ -75,9 +73,9 @@ class CommandTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         settings = json.loads((PACKAGE / "settings.json").read_text(encoding="utf-8"))
-        external = settings["languages"]["Revo"]["formatter"]["external"]
-        # Override only the executable. Every test consumes the shipped arguments.
-        executable = os.environ.get("REVOFMT_BIN") or shutil.which(external["command"])
+        options = settings["lsp"]["revofmt-lsp"]["initialization_options"]
+        # Exercise the CLI layout options shipped for the server.
+        executable = os.environ.get("REVOFMT_BIN") or shutil.which("revofmt")
         if not executable:
             raise ValueError("install revofmt on PATH or set REVOFMT_BIN to its absolute path")
         cls.executable = Path(executable)
@@ -85,7 +83,8 @@ class CommandTests(unittest.TestCase):
             raise ValueError("REVOFMT_BIN must be an absolute executable path")
         if not cls.executable.is_file() or not os.access(cls.executable, os.X_OK):
             raise ValueError(f"REVOFMT_BIN must select an existing executable: {cls.executable}")
-        cls.command = [str(cls.executable), *external["arguments"]]
+        cls.command = [str(cls.executable), "--indent-width", str(options["indentWidth"]),
+                       "--line-width", str(options["lineWidth"]), "-"]
 
     def invoke(self, source, command=None, cwd=None):
         # Bytes avoid Python's universal-newline decoding. No shell or disk input.

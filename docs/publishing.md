@@ -1,44 +1,70 @@
 # registry publishing
 
-This separate formatter package is distributed through its Git repository and
-manual Zed settings. Version `0.1.0` has not been submitted to the official
-registry. It does not currently meet the registry's language-extension rules.
+version 0.2.0 supplies a formatting language server for the existing `Revo`
+language. its ID is `revofmt-lsp`. it declares no language or grammar.
 
-## what blocks submission
+this follows Zed's [language-server extension prerequisites](https://zed.dev/docs/extensions/publishing/prerequisites).
+the separate [Revo language extension](https://github.com/w0x7y/revo-zed-extension)
+owns recognition and highlighting. registry acceptance and publication depend
+on maintainer review.
 
-The package declares the `Revo` language for file recognition but includes no
-grammar. Zed's [publishing prerequisites](https://zed.dev/docs/extensions/publishing/prerequisites)
-require a grammar for every language a language extension provides. Installing
-this package also does not apply its `settings.json`; users configure the native
-external formatter themselves.
+## release the server
 
-A second language registration would overlap with a Revo language extension.
-The registry asks contributors to provide distinct functionality and contribute
-to an existing extension when functionality overlaps. Adding a duplicate grammar
-only to pass the submission check would not resolve that overlap.
+the store package contains the Rust WASM launcher. it downloads the formatting
+server at runtime from the versioned GitHub release; it never bundles the server
+or installs revofmt. Node comes from Zed's extension API.
 
-The independent formatter repository remains useful with the existing language
-extension: use only its formatter settings as described in the [README](../README.md#get-started).
-The [Revo language extension](https://github.com/w0x7y/revo-zed-extension) has a
-[separate registry submission](https://github.com/zed-industries/extensions/pull/7900).
-That submission does not publish this formatter package.
+```sh
+REVOFMT_BIN=/absolute/path/to/revofmt scripts/verify
+scripts/package-server
+cargo build --release --target wasm32-wasip1 --locked
+```
 
-## before a future submission
+the archive contains only `server/*.cjs` and `LICENSE`. `src/server_checksums.rs`
+pins every runtime file. the launcher checks the digests on every start and
+rejects unexpected files or symlinks. a tampered cache triggers a fresh download.
 
-A separate store submission needs a distinct supported extension capability that
-satisfies the registry rules. That would change this package's implementation;
-no such change or new registry pull request was made during this preparation.
+publish `dist/revofmt-lsp-0.2.0.tar.gz` as the asset on the `v0.2.0` GitHub release.
+use a new version, asset URL and digests for every subsequent server change.
 
-Test the exact proposed commit manually in Zed, including formatting and undo.
-The current 15 metadata and CLI checks do not establish native buffer edits.
-Keep the MIT license and public repository URL with the submission.
+## test the submission
 
-The [publishing guide](https://zed.dev/docs/extensions/publishing/publishing-guide)
-describes the HTTPS submodule, matching version entry and sorted registry files.
-Publication happens after maintainers merge the submission. The registry's
-[AI policy](https://github.com/zed-industries/extensions/blob/main/AI_POLICY.md)
-requires human-owned submissions and maintainer communication; the owner must
-understand the extension and write the submission in their own words.
+install the exact proposed commit in an isolated Zed profile alongside the Revo
+language extension. merge the supplied settings and select the formatter path.
+check an unsaved buffer, repeated formatting, Unicode and multiline literals,
+syntax failure, undo, and that the disk source remains unchanged until saved.
+repeat with a fresh extension work directory to verify the public asset download.
 
-These requirements were checked on 2026-10-07. Check the current rules again
-before submitting.
+the automated server and launcher checks don't establish Zed's native buffer
+edits. record the host version, tested commit, results and known limits in the
+[verification record](verification.md). the repository owner also needs to test
+and understand the exact version submitted.
+
+## submit to the registry
+
+follow the [publishing guide](https://zed.dev/docs/extensions/publishing/publishing-guide).
+on a branch based on the current registry `main`, add the HTTPS submodule:
+
+```sh
+git submodule add https://github.com/w0x7y/revofmt-zed.git extensions/revofmt-lsp
+```
+
+pin it to the tested public commit. add this entry to `extensions.toml`:
+
+```toml
+[revofmt-lsp]
+submodule = "extensions/revofmt-lsp"
+version = "0.2.0"
+```
+
+run `pnpm sort-extensions`, validate the matching manifest version and commit
+the submodule reference with both sorted registry files. submit one extension
+per pull request. publication happens after maintainers merge it.
+
+the registry's [AI policy](https://github.com/zed-industries/extensions/blob/main/AI_POLICY.md)
+requires human-owned contributions and forbids autonomous-agent contributions.
+the owner must write the PR description and maintainer replies in their own
+words, understand the code and verify it. do not submit a generated description
+or claim human testing from an automated run.
+
+requirements checked on 2026-10-07. check the current rules before submitting.

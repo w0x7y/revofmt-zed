@@ -1,4 +1,8 @@
-# Standalone Zed package implementation plan
+# Historical standalone Zed extraction plan
+
+This records the initial 0.1.0 extraction. The current implementation is the
+[formatting language server](superpowers/specs/2026-10-07-formatting-language-server-design.md).
+Its language registration and external-formatter settings have been replaced.
 
 Goal: extract `revo-formatter/editors/zed` into `~/GitRepo/revofmt-zed` with independent installation and verification.
 
