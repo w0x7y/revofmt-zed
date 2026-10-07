@@ -1,100 +1,111 @@
-# revofmt for Zed
+# `revofmt-zed`, revo formatting in zed
 
-Format the whole unsaved Revo buffer with [revofmt](https://github.com/w0x7y/revo-formatter).
-This standalone package recognizes `.rv` and `.revo` and supplies Zed's native
-external formatter settings. Format-on-save is off until you enable it.
+open a `.rv` or `.revo` file, run `editor: format`, get formatted code.
+it works on your unsaved buffer. format-on-save is off until you turn it on.
 
-## Install
+[get started](#get-started) | [settings](#settings) | [limits](#limits) | [develop](#develop)
 
-Clone the standalone package:
+## get started
+
+you need zed and [revofmt](https://github.com/w0x7y/revo-formatter).
+[download the formatter](https://github.com/w0x7y/revo-formatter#get)
+or [build it](https://github.com/w0x7y/revo-formatter#build-from-source).
+the download is for linux x86_64 GNU, with glibc >=2.34 and `libgcc_s`.
+this extension doesn't install the formatter for you.
+
+check that it's on your PATH:
 
 ```sh
-git clone https://github.com/w0x7y/revofmt-zed.git ~/GitRepo/revofmt-zed
+revofmt --version
 ```
 
-Install `revofmt` from its [releases](https://github.com/w0x7y/revo-formatter/releases)
-or [build it from source](https://github.com/w0x7y/revo-formatter#build-from-source).
-The prebuilt formatter is verified on native Linux x86_64 GNU, with glibc >=2.34
-and `libgcc_s`. This package does not download the executable.
+already using [revo-zed-extension](https://github.com/w0x7y/revo-zed-extension)
+or another extension for revo? keep it and go straight to
+`zed: open settings file` below.
+don't install two extensions that both define the `Revo` language.
 
-If you already use [revo-zed-extension](https://github.com/w0x7y/revo-zed-extension)
-or another extension that provides `Revo`, keep it and merge only the settings
-below. Confirm it recognizes both suffixes. Installing another definition of the
-same language can displace its grammar or language server.
+otherwise, clone this one:
 
-Otherwise, run `zed: install dev extension` in Zed's command palette and select
-this repository's root directory, the one containing [extension.toml](extension.toml).
-This is a local development extension. It supplies file recognition without a
-grammar, language server or completion provider. See Zed's
-[development extension instructions](https://zed.dev/docs/extensions/developing-extensions).
+```sh
+git clone https://github.com/w0x7y/revofmt-zed.git
+```
 
-Open `zed: open settings file`, or the project's `.zed/settings.json`, and merge
-this snippet. Keep unrelated settings. Installing the extension does not load
-[settings.json](settings.json) automatically.
+in zed's command palette, run `zed: install dev extension` and select the cloned
+`revofmt-zed` folder. it adds file recognition; use the language extension above
+for highlighting and the language server.
+
+run `zed: open settings file` and merge this into your existing settings.
+you can use the project's `.zed/settings.json` instead.
+installing the extension doesn't apply these settings automatically.
 
 ```json
 {
-  "languages": {
-    "Revo": {
-      "formatter": {
-        "external": {
-          "command": "revofmt",
-          "arguments": ["--indent-width", "2", "--line-width", "80", "-"]
-        }
-      },
-      "format_on_save": "off",
-      "remove_trailing_whitespace_on_save": false,
-      "ensure_final_newline_on_save": false
-    }
-  }
+	"languages": {
+		"Revo": {
+			"formatter": {
+				"external": {
+					"command": "revofmt",
+					"arguments": ["--indent-width", "2", "--line-width", "80", "-"]
+				}
+			},
+			"format_on_save": "off",
+			"remove_trailing_whitespace_on_save": false,
+			"ensure_final_newline_on_save": false
+		}
+	}
 }
 ```
 
-Open an LF `.rv` or `.revo` file, confirm the status bar says `Revo`, and run
-`editor: format`. For an unnamed buffer, select `Revo` manually first.
+open a `.rv` or `.revo` file with LF line endings. the status bar should say
+`Revo`. run `editor: format` on this:
 
-## Settings
+```revo
+let x=1
+```
 
-Set `formatter.external.command` to an absolute executable path if `revofmt`
-is not on Zed's PATH. Paths with spaces belong in `command`; keep arguments in
-the array. Zed starts the executable directly. Shell expansions such as `~`,
-pipes and command substitutions are not supported.
+and you get:
 
-Indentation accepts `1` through `8`; line width accepts `20` through `240` and
-is a soft target. For four spaces and a 100-column target, use
-`["--indent-width", "4", "--line-width", "100", "-"]`. Keep the final `-` to
-read the current unsaved buffer. The formatter never writes a saved file here.
-See Zed's [formatter setting](https://zed.dev/docs/reference/all-settings#formatter).
+```revo
+let x = 1
+```
 
-To format on save, change `languages.Revo.format_on_save` to `"on"`. Keep both
-native whitespace settings `false`: Zed also runs those passes during manual
-formatting, and they can change spaces inside multiline literals or change
-source before the CLI rejects it. Avoid Revo formatter chains and inherited
-format code actions when relying on the preservation contract.
+for an unnamed buffer, select `Revo` as the language first.
 
-## Preservation and limits
+## settings
 
-Use UTF-8 LF source. Zed normalizes line endings in its native buffer and diff
-pipeline, including endings inside literals and comments. This integration
-cannot guarantee raw CRLF or mixed-ending file preservation. Use the CLI
-directly when those original bytes matter.
+if zed can't find the formatter, replace `"command": "revofmt"` with its absolute
+path. keep arguments in the array. paths are literal; `~` and shell commands
+aren't expanded.
 
-The CLI validates token and comment bytes, syntax equivalence modulo source
-coordinates, and idempotence. Empty source stays empty. Syntax or validation
-failures produce exit code 2, diagnostics and no formatted output. The CLI's
-[input limits](https://github.com/w0x7y/revo-formatter/blob/main/docs/verification/input-limits.md)
-include 262,144 source bytes; this package adds no separate byte limits.
+indentation accepts `1` to `8` spaces. width accepts `20` to `240` columns and
+is a soft target. for four spaces and 100 columns, change `arguments` to:
 
-Zed owns execution and edit application. This declarative package supplies no
-custom cancellation, deadline or workspace trust guard. The original
-[source review](https://github.com/w0x7y/revo-formatter/blob/main/docs/verification/2026-10-06-editor-integrations.md)
-records native host behavior assessed on 2026-10-06. The tests below exercise
-metadata and the real CLI, not a running Zed session.
+```json
+["--indent-width", "4", "--line-width", "100", "-"]
+```
 
-## Development
+keep the final `-`. it tells revofmt to read your unsaved buffer.
 
-You need Python >=3.11 and an installed formatter. No Python packages, Rust,
-Zig or neighboring repository are needed to run these checks.
+to format on save, change `"format_on_save": "off"` to `"format_on_save": "on"`.
+keep both whitespace settings `false`, even for manual formatting. zed's
+whitespace cleanup can change spaces inside multiline strings before revofmt runs.
+avoid formatter chains and format code actions that could change them too.
+
+## limits
+
+use UTF-8 files with LF line endings. zed normalizes CRLF and mixed endings,
+including those inside strings and comments. use the CLI directly if you need
+to preserve the original bytes.
+
+revofmt checks syntax, literal and comment bytes, and that formatting twice
+gives the same result. it accepts up to 262,144 source bytes, with further
+[input limits](https://github.com/w0x7y/revo-formatter/blob/main/docs/verification/input-limits.md).
+zed runs the command and applies its output; this extension adds no timeout or
+cancellation handling of its own.
+
+## develop
+
+with python >=3.11 and an installed formatter, from this repository's root:
 
 ```sh
 scripts/verify                          # revofmt on PATH
@@ -102,28 +113,13 @@ REVOFMT_BIN=/absolute/path/to/revofmt scripts/verify
 python3 tests/run.py MetadataTests      # metadata only
 ```
 
-`REVOFMT_BIN` must be an absolute executable path. The 15 checks cover language
-recognition, shipped settings, the license, LF layout, Unicode, opaque literal
-whitespace, CRLF and mixed-ending CLI bytes, empty input, idempotence, syntax
-and option failures, resource admission, and stdin formatting without writes.
-Successful subprocess calls exercise the CLI's built-in preservation checks.
-The raw CRLF checks establish CLI behavior only, not Zed buffer preservation.
+the 15 checks cover the settings and real CLI formatting, including byte
+preservation, idempotence and failures. they don't automate zed's buffer edits
+or undo. the [CI workflow](.github/workflows/test.yml) downloads a pinned,
+checksum-verified formatter and runs the same checks.
 
-The [CI workflow](.github/workflows/test.yml) runs these checks on Linux with
-Python 3.11 and formatter release `v0.1.0`, verified against SHA-256
-`37c4dc23857299aca5d4f1b98f838f5f1f7c8ac75e118bcf24390a5b99a654a1`.
-Update the version and checksum together after verifying a new release.
+## credits
 
-For a manual host check, open an LF file with `let x=1`, make an unsaved edit,
-and run `editor: format`. Confirm only the buffer changes, format twice, then
-undo. Confirm malformed source reports an error without changing the buffer,
-an empty buffer stays empty, both suffixes select `Revo`, and save formatting
-remains off until enabled.
-
-## Credits
-
-[MIT](LICENSE). Extracted from `revo-formatter/editors/zed` at commit
+[MIT](LICENSE). started in `revo-formatter/editors/zed` at commit
 `14bafd8ede11829157d0bd15ebd01cc667c4efaa`.
-[Implementation notes](docs/implementation.md) record the extraction scope.
-The formatter uses [Revo](https://github.com/if-not-nil/revo), also MIT; this
-package contains neither the parser nor formatter binary.
+the formatter uses [revo](https://github.com/if-not-nil/revo), also MIT.
