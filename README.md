@@ -12,6 +12,7 @@ you need zed and [revofmt](https://github.com/w0x7y/revo-formatter).
 or [build it](https://github.com/w0x7y/revo-formatter#build-from-source).
 the download is for linux x86_64 GNU, with glibc >=2.34 and `libgcc_s`.
 this extension doesn't install the formatter for you.
+this separate package isn't in the official registry; see [publishing](docs/publishing.md).
 
 check that it's on your PATH:
 
