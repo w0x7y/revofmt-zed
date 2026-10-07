@@ -6,6 +6,12 @@ external formatter settings. Format-on-save is off until you enable it.
 
 ## Install
 
+Clone the standalone package:
+
+```sh
+git clone https://github.com/w0x7y/revofmt-zed.git ~/GitRepo/revofmt-zed
+```
+
 Install `revofmt` from its [releases](https://github.com/w0x7y/revo-formatter/releases)
 or [build it from source](https://github.com/w0x7y/revo-formatter#build-from-source).
 The prebuilt formatter is verified on native Linux x86_64 GNU, with glibc >=2.34
@@ -117,8 +123,7 @@ remains off until enabled.
 ## Credits
 
 [MIT](LICENSE). Extracted from `revo-formatter/editors/zed` at commit
-`14bafd8ede11829157d0bd15ebd01cc667c4efaa`. The manifest retains the upstream
-source repository URL until this standalone repository is published.
+`14bafd8ede11829157d0bd15ebd01cc667c4efaa`.
 [Implementation notes](docs/implementation.md) record the extraction scope.
 The formatter uses [Revo](https://github.com/if-not-nil/revo), also MIT; this
 package contains neither the parser nor formatter binary.
