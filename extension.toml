@@ -1,0 +1,7 @@
+id = "revofmt"
+name = "Revo Formatter"
+version = "0.1.0"
+schema_version = 1
+authors = ["Idan Gilboa"]
+description = "Revo file recognition with documented native revofmt formatting settings"
+repository = "https://github.com/w0x7y/revo-formatter"

@@ -1,0 +1,30 @@
+name: Zed formatting checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.11'
+      - name: Download and verify pinned formatter
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/revofmt"
+          cd "$RUNNER_TEMP/revofmt"
+          for file in revofmt-linux-x86_64-gnu LICENSE REVO-LICENSE.txt THIRD_PARTY.md; do
+            curl --fail --location --silent --show-error --output "$file" \
+              "https://github.com/w0x7y/revo-formatter/releases/download/v0.1.0/$file"
+          done
+          echo "37c4dc23857299aca5d4f1b98f838f5f1f7c8ac75e118bcf24390a5b99a654a1  revofmt-linux-x86_64-gnu" | sha256sum --check
+          chmod +x revofmt-linux-x86_64-gnu
+          echo "REVOFMT_BIN=$RUNNER_TEMP/revofmt/revofmt-linux-x86_64-gnu" >> "$GITHUB_ENV"
+      - name: Check metadata and real CLI formatting
+        run: scripts/verify
