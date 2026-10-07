@@ -36,8 +36,10 @@ the unformatted source, and invalid syntax left the source unchanged. The host
 log confirmed Node was supplied by Zed and the explicit formatter path reached
 the downloaded-server command. Personal editor settings were unchanged.
 
-This first host run used a locally seeded, digest-verified runtime cache. A fresh
-public-release download check is still required before registry submission.
+A second run started with an empty extension work directory. Zed downloaded
+the public v0.2.0 release asset, admitted all four runtime files and the license,
+and repeated the same formatting, literal preservation, failure and undo checks.
+
 These are automated editor checks; the registry owner still needs to test the
 exact submission and write the PR description in their own words.
 
@@ -52,3 +54,6 @@ its regression test and the registry-built native Zed run pass.
 A test fixture also wrote a PID file when ordinary source happened to contain a
 space. It now writes markers only for explicit test modes and absolute temporary
 paths; a subprocess regression confirms ordinary source creates no files.
+
+The prepared registry branch also passes its build, 152 tests, sorted-table
+checks, HTTPS submodule validation and matching version/license validation.

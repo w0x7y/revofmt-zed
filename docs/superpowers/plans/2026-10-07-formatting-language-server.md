@@ -46,5 +46,5 @@ Files: package script, settings, owning guides, CI, verification record.
 - [x] Verify exact release in isolated Zed with the existing language extension.
 - [x] Check unsaved formatting, fixed point, rejection, literal bytes and undo.
 - [x] Update guides and CI; inspect full diff, archive, links and README indentation.
-- [ ] Publish server release, prepare sorted HTTPS registry branch.
+- [x] Publish server release, prepare sorted HTTPS registry branch.
 - [ ] Obtain the human-authored description required by registry policy, then submit.
