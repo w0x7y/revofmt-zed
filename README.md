@@ -40,19 +40,19 @@ installing the extension doesn't apply these settings automatically.
 
 ```json
 {
-	"languages": {
-		"Revo": {
-			"formatter": {
-				"external": {
-					"command": "revofmt",
-					"arguments": ["--indent-width", "2", "--line-width", "80", "-"]
-				}
-			},
-			"format_on_save": "off",
-			"remove_trailing_whitespace_on_save": false,
-			"ensure_final_newline_on_save": false
-		}
-	}
+  "languages": {
+    "Revo": {
+      "formatter": {
+        "external": {
+          "command": "revofmt",
+          "arguments": ["--indent-width", "2", "--line-width", "80", "-"]
+        }
+      },
+      "format_on_save": "off",
+      "remove_trailing_whitespace_on_save": false,
+      "ensure_final_newline_on_save": false
+    }
+  }
 }
 ```
 
