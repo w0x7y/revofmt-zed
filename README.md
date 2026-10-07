@@ -1,4 +1,4 @@
-# revofmt-zed
+# `revofmt-zed`, revo formatting in zed
 
 revo formatting in zed. run `editor: format` on an unsaved buffer.
 
