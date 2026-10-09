@@ -43,6 +43,31 @@ test('real CLI preserves opaque literal/comment bytes with UTF-16 edit coordinat
 test('real CLI syntax failure produces no edits', async t => {
   const c = client(t); await c.initialize(); c.open('fn broken('); assert.deepEqual((await c.format()).result, []);
 });
+test('real CLI preserves supported interpolation modes', async t => {
+  // Revo Parser.zig covers :v, :?, :p and the lone :d atom.
+  const source = 'let t=1\nprint("#{t:v} #{t:?} #{t:p} #{:d}")';
+  const expected = 'let t = 1\nprint("#{t:v} #{t:?} #{t:p} #{:d}")\n';
+  const c = client(t); await c.initialize(); const uri = c.open(source);
+  assert.equal(apply(source, (await c.format(uri)).result), expected);
+  c.notify('textDocument/didChange', { textDocument: { uri, version: 2 }, contentChanges: [{ text: expected }] });
+  assert.deepEqual((await c.format(uri)).result, []);
+});
+test('current compiler syntax rejection returns no LSP edits', {
+  skip: process.env.REVOFMT_CURRENT_SYNTAX !== '1',
+}, async t => {
+  // Revo 71115de requires range-start/step adjacency; e94e6d8 rejects :d modes.
+  const c = client(t); await c.initialize();
+  for (const [index, source] of [
+    'for i in 0 ..5 do\nprint(i)\nend',
+    'for i in 0..2 ..10 do\nprint(i)\nend',
+    'let t=1\nprint("#{t:d}")',
+  ].entries()) {
+    const uri = c.open(source, `file:///current-syntax-${index}.rv`);
+    const edits = (await c.format(uri)).result;
+    assert.deepEqual(edits, [], source);
+    assert.equal(apply(source, edits), source);
+  }
+});
 test('whole-document edit ends at UTF-16 code units for astral text', async t => {
   const source = 'let text=\"😀\"'; const c = client(t); await c.initialize(); c.open(source);
   const result = (await c.format()).result; assert.equal(result[0].range.end.character, source.length); assert.equal(result[0].range.end.line, 0); assert.equal(apply(source, result), 'let text = \"😀\"\n');

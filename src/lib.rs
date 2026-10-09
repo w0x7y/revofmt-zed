@@ -2,7 +2,7 @@ mod integrity;
 mod options;
 mod server_checksums;
 
-use std::{fs, path::Path};
+use std::path::Path;
 use zed_extension_api::{self as zed, settings::LspSettings};
 
 const SERVER_ID: &str = "revofmt-lsp";
@@ -11,19 +11,6 @@ const SERVER_URL: &str =
     "https://github.com/w0x7y/revofmt-zed/releases/download/v0.2.0/revofmt-lsp-0.2.0.tar.gz";
 
 struct RevoFormatterExtension;
-
-fn server_entrypoint(directory: &Path) -> zed::Result<String> {
-    // Integrity admission already rejects symlinks. Rust 1.90 WASI does not
-    // support filesystem canonicalization; Zed initializes the working directory.
-    let entrypoint = std::env::current_dir()
-        .map_err(|error| error.to_string())?
-        .join(directory)
-        .join("server/main.cjs");
-    Ok(entrypoint
-        .to_str()
-        .ok_or("Downloaded server path is not UTF-8")?
-        .to_owned())
-}
 
 impl zed::Extension for RevoFormatterExtension {
     fn new() -> Self {
@@ -41,28 +28,21 @@ impl zed::Extension for RevoFormatterExtension {
             worktree.which("revofmt"),
         )?;
         let node = zed::node_binary_path()?;
-        let directory = Path::new(SERVER_DIRECTORY);
-        if integrity::verify_server(directory, server_checksums::SERVER_FILES).is_err() {
-            zed::set_language_server_installation_status(
-                language_server_id,
-                &zed::LanguageServerInstallationStatus::Downloading,
-            );
-            match fs::symlink_metadata(directory) {
-                Ok(metadata) if metadata.is_dir() => {
-                    fs::remove_dir_all(directory).map_err(|error| error.to_string())?
-                }
-                Ok(_) => fs::remove_file(directory).map_err(|error| error.to_string())?,
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-                Err(error) => return Err(error.to_string()),
-            }
-            zed::download_file(
-                SERVER_URL,
-                SERVER_DIRECTORY,
-                zed::DownloadedFileType::GzipTar,
-            )?;
-            integrity::verify_server(directory, server_checksums::SERVER_FILES)?;
-        }
-        let entrypoint = server_entrypoint(directory)?;
+        let entrypoint = integrity::server_entrypoint(
+            Path::new(SERVER_DIRECTORY),
+            server_checksums::SERVER_FILES,
+            || {
+                zed::set_language_server_installation_status(
+                    language_server_id,
+                    &zed::LanguageServerInstallationStatus::Downloading,
+                );
+                zed::download_file(
+                    SERVER_URL,
+                    SERVER_DIRECTORY,
+                    zed::DownloadedFileType::GzipTar,
+                )
+            },
+        )?;
         Ok(zed::Command {
             command: node,
             args: vec![entrypoint, "--formatter".into(), formatter],
@@ -82,19 +62,3 @@ impl zed::Extension for RevoFormatterExtension {
 }
 
 zed::register_extension!(RevoFormatterExtension);
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn resolves_absolute_entrypoint_without_filesystem_canonicalization() {
-        let directory = Path::new("entrypoint resolution fixture with spaces");
-        assert!(!directory.exists());
-        let expected = format!(
-            "{}/entrypoint resolution fixture with spaces/server/main.cjs",
-            std::env::current_dir().unwrap().display()
-        );
-        assert_eq!(server_entrypoint(directory).unwrap(), expected);
-    }
-}

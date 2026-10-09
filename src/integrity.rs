@@ -6,7 +6,38 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-pub fn verify_server(root: &Path, manifest: &[(&str, &str)]) -> Result<(), String> {
+/// Admit the cached runtime, repair it when needed, and return its entrypoint.
+/// The download adapter runs only after removing the rejected cache; its output
+/// must pass the same admission checks before any path can be returned.
+pub fn server_entrypoint(
+    root: &Path,
+    manifest: &[(&str, &str)],
+    download: impl FnOnce() -> Result<(), String>,
+) -> Result<String, String> {
+    if verify_server(root, manifest).is_err() {
+        match fs::symlink_metadata(root) {
+            Ok(metadata) if metadata.is_dir() => {
+                fs::remove_dir_all(root).map_err(|error| error.to_string())?
+            }
+            Ok(_) => fs::remove_file(root).map_err(|error| error.to_string())?,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.to_string()),
+        }
+        download()?;
+        verify_server(root, manifest)?;
+    }
+    // Admission rejects symlinks. Rust 1.90 WASI cannot canonicalize paths;
+    // Zed initializes the extension's working directory before calling us.
+    std::env::current_dir()
+        .map_err(|error| error.to_string())?
+        .join(root)
+        .join("server/main.cjs")
+        .to_str()
+        .map(str::to_owned)
+        .ok_or_else(|| "Downloaded server path is not UTF-8".into())
+}
+
+fn verify_server(root: &Path, manifest: &[(&str, &str)]) -> Result<(), String> {
     if manifest.is_empty() {
         return Err("No runtime checksums are embedded in this extension".into());
     }
@@ -99,16 +130,24 @@ mod tests {
     struct Download(std::path::PathBuf);
 
     impl Download {
-        fn new() -> Self {
-            static SEQUENCE: AtomicU64 = AtomicU64::new(0);
-            let path = std::env::temp_dir().join(format!(
-                "revofmt-lsp-test-{}-{}",
-                std::process::id(),
-                SEQUENCE.fetch_add(1, Ordering::Relaxed)
-            ));
+        fn populate(path: &Path) {
             fs::create_dir_all(path.join("server")).unwrap();
             fs::write(path.join("server/main.cjs"), b"abc").unwrap();
             fs::write(path.join("LICENSE"), b"MIT").unwrap();
+        }
+
+        fn new() -> Self {
+            Self::in_directory(&std::env::temp_dir())
+        }
+
+        fn in_directory(parent: &Path) -> Self {
+            static SEQUENCE: AtomicU64 = AtomicU64::new(0);
+            let path = parent.join(format!(
+                "revofmt lsp test-{}-{}",
+                std::process::id(),
+                SEQUENCE.fetch_add(1, Ordering::Relaxed)
+            ));
+            Self::populate(&path);
             Self(path)
         }
     }
@@ -117,6 +156,91 @@ mod tests {
         fn drop(&mut self) {
             fs::remove_dir_all(&self.0).unwrap();
         }
+    }
+
+    #[test]
+    fn resolves_verified_cache_without_downloading_or_canonicalizing() {
+        let current = std::env::current_dir().unwrap();
+        let download = Download::in_directory(&current.join("target"));
+        let relative = download.0.strip_prefix(&current).unwrap();
+        let entrypoint = server_entrypoint(relative, MANIFEST, || {
+            panic!("A valid cache must not be downloaded again")
+        })
+        .unwrap();
+        assert_eq!(
+            entrypoint,
+            download.0.join("server/main.cjs").to_str().unwrap()
+        );
+    }
+
+    #[test]
+    fn replaces_tampered_cache_and_admits_only_verified_download() {
+        let download = Download::new();
+        fs::write(download.0.join("server/main.cjs"), b"tampered").unwrap();
+        server_entrypoint(&download.0, MANIFEST, || {
+            assert!(
+                !download.0.exists(),
+                "The rejected cache must be removed first"
+            );
+            Download::populate(&download.0);
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(
+            fs::read(download.0.join("server/main.cjs")).unwrap(),
+            b"abc"
+        );
+
+        fs::write(download.0.join("server/main.cjs"), b"tampered").unwrap();
+        let result = server_entrypoint(&download.0, MANIFEST, || {
+            Download::populate(&download.0);
+            fs::write(download.0.join("server/injected.cjs"), b"process.exit()").unwrap();
+            Ok(())
+        });
+        assert!(result.unwrap_err().contains("Unexpected runtime entry"));
+    }
+
+    #[test]
+    fn missing_cache_propagates_download_failure_and_retries_next_start() {
+        let download = Download::new();
+        fs::remove_dir_all(&download.0).unwrap();
+        let result = server_entrypoint(&download.0, MANIFEST, || Err("network unavailable".into()));
+        assert_eq!(result.unwrap_err(), "network unavailable");
+        server_entrypoint(&download.0, MANIFEST, || {
+            Download::populate(&download.0);
+            Ok(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn replaces_non_directory_cache() {
+        let download = Download::new();
+        fs::remove_dir_all(&download.0).unwrap();
+        fs::write(&download.0, b"not a directory").unwrap();
+        server_entrypoint(&download.0, MANIFEST, || {
+            assert!(!download.0.exists());
+            Download::populate(&download.0);
+            Ok(())
+        })
+        .unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn repairs_symlinked_cache_without_removing_target() {
+        use std::os::unix::fs::symlink;
+        let download = Download::new();
+        let target = Download::new();
+        fs::remove_dir_all(&download.0).unwrap();
+        symlink(&target.0, &download.0).unwrap();
+        server_entrypoint(&download.0, MANIFEST, || {
+            assert!(!download.0.exists());
+            Download::populate(&download.0);
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(fs::read(target.0.join("server/main.cjs")).unwrap(), b"abc");
     }
 
     #[test]

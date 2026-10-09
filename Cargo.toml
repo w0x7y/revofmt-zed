@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 license = "MIT"
 repository = "https://github.com/w0x7y/revofmt-zed"
+exclude = ["graft/**"]
 
 [lib]
 crate-type = ["cdylib"]
