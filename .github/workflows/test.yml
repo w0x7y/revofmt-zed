@@ -28,13 +28,13 @@ jobs:
           cd "$RUNNER_TEMP/revofmt"
           for file in revofmt-linux-x86_64-gnu LICENSE REVO-LICENSE.txt THIRD_PARTY.md; do
             curl --fail --location --silent --show-error --output "$file" \
-              "https://github.com/w0x7y/revo-formatter/releases/download/v0.1.0/$file"
+              "https://github.com/w0x7y/revo-formatter/releases/download/v0.1.2/$file"
           done
-          echo "37c4dc23857299aca5d4f1b98f838f5f1f7c8ac75e118bcf24390a5b99a654a1  revofmt-linux-x86_64-gnu" | sha256sum --check
+          echo "515bc4c74e20f52b111310d27c63fe3bbf33bf58ed17c181815ac39408e3cb6e  revofmt-linux-x86_64-gnu" | sha256sum --check
           chmod +x revofmt-linux-x86_64-gnu
           echo "REVOFMT_BIN=$RUNNER_TEMP/revofmt/revofmt-linux-x86_64-gnu" >> "$GITHUB_ENV"
       - name: Check protocol, launcher and real formatting
-        run: scripts/verify
+        run: REVOFMT_CURRENT_SYNTAX=1 scripts/verify
       - name: Build WASI extension and server asset
         run: |
           cargo build --release --target wasm32-wasip2 --locked

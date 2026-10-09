@@ -1,6 +1,6 @@
 id = "revofmt-lsp"
 name = "Revo Formatter LSP"
-version = "0.2.0"
+version = "0.2.1"
 schema_version = 1
 authors = ["Idan Gilboa"]
 description = "Formats unsaved Revo buffers using the installed revofmt CLI"

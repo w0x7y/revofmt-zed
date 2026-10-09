@@ -1,6 +1,6 @@
 # registry publishing
 
-version 0.2.0 supplies a formatting language server for the existing `Revo`
+version 0.2.1 supplies a formatting language server for the existing `Revo`
 language. its ID is `revofmt-lsp`. it declares no language or grammar.
 
 this follows Zed's [language-server extension prerequisites](https://zed.dev/docs/extensions/publishing/prerequisites).
@@ -24,7 +24,7 @@ the archive contains only `server/*.cjs` and `LICENSE`. `src/server_checksums.rs
 pins every runtime file. the launcher checks the digests on every start and
 rejects unexpected files or symlinks. a tampered cache triggers a fresh download.
 
-publish `dist/revofmt-lsp-0.2.0.tar.gz` as the asset on the `v0.2.0` GitHub release.
+publish `dist/revofmt-lsp-0.2.1.tar.gz` as the asset on the `v0.2.1` GitHub release.
 use a new version, asset URL and digests for every subsequent server change.
 
 ## test the submission
@@ -54,7 +54,7 @@ pin it to the tested public commit. add this entry to `extensions.toml`:
 ```toml
 [revofmt-lsp]
 submodule = "extensions/revofmt-lsp"
-version = "0.2.0"
+version = "0.2.1"
 ```
 
 run `pnpm sort-extensions`, validate the matching manifest version and commit

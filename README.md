@@ -107,10 +107,10 @@ rustup target add wasm32-wasip2
 cargo build --release --target wasm32-wasip2 --locked
 ```
 
-For a formatter rebuilt against Revo `e94e6d8` or later, add
+For formatter `v0.1.2` or a source build using Revo `e94e6d8` or later, add
 `REVOFMT_CURRENT_SYNTAX=1` to verify range adjacency and invalid interpolation
-mode rejection without LSP edits. These checks are opt-in because CI still
-uses the published formatter built against the earlier compiler.
+mode rejection without edits. CI enables these checks with the pinned `v0.1.2`
+formatter. Leave the option unset when testing an older formatter.
 
 the checks cover framed LSP requests, real CLI formatting, process failures,
 resource limits, stale edits and the launcher's downloaded-file checks.

@@ -33,7 +33,7 @@ class MetadataTests(unittest.TestCase):
         manifest = self.read_toml("extension.toml")
         self.assertEqual(manifest["id"], "revofmt-lsp")
         self.assertEqual(manifest["schema_version"], 1)
-        self.assertEqual(manifest["version"], "0.2.0")
+        self.assertEqual(manifest["version"], "0.2.1")
         self.assertEqual(manifest["lib"]["version"], "0.7.0")
         self.assertEqual(set(manifest["language_servers"]), {"revofmt-lsp"})
         self.assertEqual(manifest["language_servers"]["revofmt-lsp"]["languages"], ["Revo"])

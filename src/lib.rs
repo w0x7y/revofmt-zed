@@ -6,9 +6,9 @@ use std::path::Path;
 use zed_extension_api::{self as zed, settings::LspSettings};
 
 const SERVER_ID: &str = "revofmt-lsp";
-const SERVER_DIRECTORY: &str = "revofmt-lsp-0.2.0";
+const SERVER_DIRECTORY: &str = "revofmt-lsp-0.2.1";
 const SERVER_URL: &str =
-    "https://github.com/w0x7y/revofmt-zed/releases/download/v0.2.0/revofmt-lsp-0.2.0.tar.gz";
+    "https://github.com/w0x7y/revofmt-zed/releases/download/v0.2.1/revofmt-lsp-0.2.1.tar.gz";
 
 struct RevoFormatterExtension;
 
