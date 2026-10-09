@@ -11,7 +11,7 @@ recognition, highlighting and the Revolt language server.
 ## get started
 
 you need zed, the Revo language extension and
-[revofmt](https://github.com/w0x7y/revo-formatter#get) on your PATH.
+[revofmt](https://github.com/w0x7y/revo-formatter#install) on your PATH.
 the formatter's published binary supports linux x86_64 GNU. this extension
 doesn't install it. zed supplies Node for the formatting server.
 
@@ -21,7 +21,7 @@ git clone https://github.com/w0x7y/revofmt-zed.git
 ```
 
 until the registry submission is merged, install from source. with Rust and
-its `wasm32-wasip1` target installed, run `zed: install dev extension` and select
+its `wasm32-wasip2` target installed, run `zed: install dev extension` and select
 the cloned folder. see [development](#develop) for build checks.
 
 run `zed: open settings file` and merge [settings.json](settings.json) into your
@@ -103,8 +103,8 @@ from the repository root:
 
 ```sh
 REVOFMT_BIN=/absolute/path/to/revofmt scripts/verify
-rustup target add wasm32-wasip1
-cargo build --release --target wasm32-wasip1 --locked
+rustup target add wasm32-wasip2
+cargo build --release --target wasm32-wasip2 --locked
 ```
 
 For a formatter rebuilt against Revo `e94e6d8` or later, add

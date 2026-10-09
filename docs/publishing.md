@@ -17,7 +17,7 @@ or installs revofmt. Node comes from Zed's extension API.
 ```sh
 REVOFMT_BIN=/absolute/path/to/revofmt scripts/verify
 scripts/package-server
-cargo build --release --target wasm32-wasip1 --locked
+cargo build --release --target wasm32-wasip2 --locked
 ```
 
 the archive contains only `server/*.cjs` and `LICENSE`. `src/server_checksums.rs`
