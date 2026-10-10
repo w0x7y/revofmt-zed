@@ -472,7 +472,7 @@ dependencies = [
 
 [[package]]
 name = "revofmt-lsp"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "sha2",
  "zed_extension_api",
