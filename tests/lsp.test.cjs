@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const url = require('node:url');
 const { spawnSync } = require('node:child_process');
 const { Client } = require('./lsp/client.cjs');
 const formatter = process.env.REVOFMT_BIN;
@@ -40,8 +41,45 @@ test('real CLI preserves opaque literal/comment bytes with UTF-16 edit coordinat
   assert.equal(apply(source, (await c.format()).result), expected.stdout);
   assert.ok(expected.stdout.includes('"😀  value"')); assert.ok(expected.stdout.includes('# comment  bytes'));
 });
-test('real CLI syntax failure produces no edits', async t => {
+test('real CLI syntax failure produces no edits and shows the CLI diagnostic', async t => {
   const c = client(t); await c.initialize(); c.open('fn broken('); assert.deepEqual((await c.format()).result, []);
+  assert.equal(c.notifications.length, 1); const { method, params } = c.notifications[0];
+  assert.equal(method, 'window/showMessage'); assert.equal(params.type, 1); assert.match(params.message, /^revofmt: .*stdin/);
+  assert.equal(params.message, params.message.trim());
+});
+function project(t, config) {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'revofmt-lsp-config-')); t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  if (config !== undefined) fs.writeFileSync(path.join(directory, 'revofmt.toml'), config);
+  return directory;
+}
+const fileUri = file => url.pathToFileURL(file).href;
+test('a project revofmt.toml found from the file URI overrides the server settings, without writing the file', async t => {
+  const directory = project(t, 'indent_style = "tab"\n'); const file = path.join(directory, 'a.rv'); const source = 'fn f() do\nlet x=1\nend';
+  const c = client(t); await c.initialize({ indentStyle: 'space', indentWidth: 4, lineWidth: 40, maxBlankLines: 0 }); const uri = c.open(source, fileUri(file));
+  assert.equal(apply(source, (await c.format(uri)).result), 'fn f() do\n\tlet x = 1\nend\n');
+  assert.equal(fs.existsSync(file), false); assert.deepEqual(c.notifications, []);
+});
+test('configuration is found from an ancestor directory and omitted keys use built-in defaults', async t => {
+  const directory = project(t, 'max_blank_lines = 0\n'); fs.mkdirSync(path.join(directory, 'nested/deeper'), { recursive: true });
+  const source = 'fn f() do\nlet x=1\n\n\nlet y=2\nend'; const uri = fileUri(path.join(directory, 'nested/deeper/a.rv'));
+  const c = client(t); await c.initialize({ indentStyle: 'tab', maxBlankLines: 2 }); c.open(source, uri);
+  assert.equal(apply(source, (await c.format(uri)).result), 'fn f() do\n  let x = 1\n  let y = 2\nend\n');
+});
+test('a file URI without a project configuration uses the server settings', async t => {
+  const directory = project(t); const source = 'fn f() do\nlet x=1\n\n\nlet y=2\nend'; const uri = fileUri(path.join(directory, 'a.rv'));
+  const c = client(t); await c.initialize({ indentStyle: 'tab', maxBlankLines: 0 }); c.open(source, uri);
+  assert.equal(apply(source, (await c.format(uri)).result), 'fn f() do\n\tlet x = 1\n\tlet y = 2\nend\n');
+});
+test('a buffer without a file path never discovers a configuration from the working directory', async t => {
+  const directory = project(t, 'indent_style = "tab"\n'); const source = 'fn f() do\nlet x=1\nend';
+  const c = new Client(formatter, { cwd: directory }); t.after(() => c.stop()); await c.initialize(); const uri = c.open(source, 'untitled:Untitled-1');
+  assert.equal(apply(source, (await c.format(uri)).result), 'fn f() do\n  let x = 1\nend\n');
+});
+test('a malformed revofmt.toml produces no edits and an error message naming it', async t => {
+  const directory = project(t, 'indent_style = "tabs"\n'); const source = 'fn f() do\nlet x=1\nend'; const uri = fileUri(path.join(directory, 'a.rv'));
+  const c = client(t); await c.initialize(); c.open(source, uri); assert.deepEqual((await c.format(uri)).result, []);
+  assert.equal(c.notifications.length, 1); const { method, params } = c.notifications[0];
+  assert.equal(method, 'window/showMessage'); assert.equal(params.type, 1); assert.match(params.message, /^revofmt: /); assert.ok(params.message.includes('revofmt.toml'), params.message);
 });
 test('real CLI preserves supported interpolation modes', async t => {
   // Revo Parser.zig covers :v, :?, :p and the lone :d atom.

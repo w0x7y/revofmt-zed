@@ -6,11 +6,11 @@ pub const SERVER_FILES: &[(&str, &str)] = &[
     ),
     (
         "server/formatter.cjs",
-        "3be2bb0db20427082f62909f0452a467dd4af3e0ba9fe8bc5b3108f63c79561c",
+        "fd49c3db83a301ad35ce1b5b6bdc71dc69938509a026346347550dbb6f177269",
     ),
     (
         "server/main.cjs",
-        "c56c2090e2cf89a5cb17c1dcb3059448ec17e9f20fc479ee6a5359e57516a2f3",
+        "8758eb716e26ded8a79e4335a2dc80581012a13c9aef901170a1ae69e031ccdc",
     ),
     (
         "server/protocol.cjs",

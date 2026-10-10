@@ -7,10 +7,10 @@ function frame(message) {
   return Buffer.concat([Buffer.from(`Content-Length: ${body.length}\r\n\r\n`), body]);
 }
 class Client {
-  constructor(formatter) {
-    this.child = spawn(process.execPath, [path.resolve(__dirname, '../../server/main.cjs'), '--formatter', formatter], { stdio: ['pipe', 'pipe', 'pipe'] });
+  constructor(formatter, { cwd } = {}) {
+    this.child = spawn(process.execPath, [path.resolve(__dirname, '../../server/main.cjs'), '--formatter', formatter], { cwd, stdio: ['pipe', 'pipe', 'pipe'] });
     this.child.stdin.on('error', () => {});
-    this.nextId = 1; this.pending = new Map(); this.messages = []; this.buffer = Buffer.alloc(0); this.stderr = '';
+    this.nextId = 1; this.pending = new Map(); this.messages = []; this.notifications = []; this.buffer = Buffer.alloc(0); this.stderr = '';
     this.exited = once(this.child, 'exit');
     this.child.stderr.on('data', chunk => { this.stderr += chunk; });
     this.child.stdout.on('data', chunk => {
@@ -22,6 +22,7 @@ class Client {
         if (this.buffer.length < end + 4 + length) break;
         const message = JSON.parse(this.buffer.subarray(end + 4, end + 4 + length));
         this.buffer = this.buffer.subarray(end + 4 + length); this.messages.push(message);
+        if (typeof message.method === 'string' && !Object.hasOwn(message, 'id')) this.notifications.push(message);
         const pending = this.pending.get(message.id);
         if (pending) { clearTimeout(pending.timer); this.pending.delete(message.id); pending.resolve(message); }
       }

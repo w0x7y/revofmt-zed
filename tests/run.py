@@ -50,7 +50,8 @@ class MetadataTests(unittest.TestCase):
         })
         settings = json.loads((PACKAGE / "settings.json").read_text(encoding="utf-8"))
         self.assertEqual(settings["lsp"]["revofmt-lsp"]["initialization_options"], {
-            "indentWidth": 2, "lineWidth": 80, "timeoutMs": 5000
+            "indentWidth": 2, "lineWidth": 80, "indentStyle": "space",
+            "maxBlankLines": 1, "timeoutMs": 5000
         })
 
     def test_save_is_opt_in_and_cli_owns_whitespace(self):
@@ -83,8 +84,21 @@ class CommandTests(unittest.TestCase):
             raise ValueError("REVOFMT_BIN must be an absolute executable path")
         if not cls.executable.is_file() or not os.access(cls.executable, os.X_OK):
             raise ValueError(f"REVOFMT_BIN must select an existing executable: {cls.executable}")
-        cls.command = [str(cls.executable), "--indent-width", str(options["indentWidth"]),
-                       "--line-width", str(options["lineWidth"]), "-"]
+        cls.options = options
+        cls.command = cls.command_for()
+
+    @classmethod
+    def command_for(cls, stdin_filepath=None):
+        # Same argument order as the language server: discovery first, layout last.
+        command = [str(cls.executable), "--prefer-config"]
+        if stdin_filepath is not None:
+            command += ["--stdin-filepath", str(stdin_filepath)]
+        return command + [
+            "--indent-width", str(cls.options["indentWidth"]),
+            "--line-width", str(cls.options["lineWidth"]),
+            "--indent-style", cls.options["indentStyle"],
+            "--max-blank-lines", str(cls.options["maxBlankLines"]), "-",
+        ]
 
     def invoke(self, source, command=None, cwd=None):
         # Bytes avoid Python's universal-newline decoding. No shell or disk input.
@@ -155,6 +169,42 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertEqual(result.stdout, b"")
         self.assertTrue(result.stderr)
+
+    def test_project_config_with_stdin_path_selects_tabs_for_a_missing_file(self):
+        with tempfile.TemporaryDirectory(prefix="revofmt-zed-") as directory:
+            (Path(directory) / "revofmt.toml").write_text('indent_style = "tab"\n', encoding="utf-8")
+            missing = Path(directory) / "unsaved.rv"
+            result = self.invoke(b"fn f() do\nlet x=1\nend", command=self.command_for(missing))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stderr, b"")
+            self.assertEqual(result.stdout, b"fn f() do\n\tlet x = 1\nend\n")
+            self.assertFalse(missing.exists())
+            self.assertEqual([path.name for path in Path(directory).iterdir()], ["revofmt.toml"])
+
+    def test_project_config_beats_every_layout_argument_and_resets_omitted_keys(self):
+        with tempfile.TemporaryDirectory(prefix="revofmt-zed-") as directory:
+            (Path(directory) / "revofmt.toml").write_text("max_blank_lines = 0\n", encoding="utf-8")
+            command = self.command_for(Path(directory) / "a.rv")
+            command[command.index("--indent-width") + 1] = "4"
+            command[command.index("--indent-style") + 1] = "tab"
+            result = self.invoke(b"fn f() do\nlet x=1\n\n\nlet y=2\nend", command=command)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, b"fn f() do\n  let x = 1\n  let y = 2\nend\n")
+
+    def test_without_a_stdin_path_the_working_directory_config_is_ignored(self):
+        with tempfile.TemporaryDirectory(prefix="revofmt-zed-") as directory:
+            (Path(directory) / "revofmt.toml").write_text('indent_style = "tab"\n', encoding="utf-8")
+            result = self.invoke(b"fn f() do\nlet x=1\nend", cwd=directory)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, b"fn f() do\n  let x = 1\nend\n")
+
+    def test_malformed_project_config_fails_with_a_diagnostic_naming_the_file(self):
+        with tempfile.TemporaryDirectory(prefix="revofmt-zed-") as directory:
+            (Path(directory) / "revofmt.toml").write_text('indent_style = "tabs"\n', encoding="utf-8")
+            result = self.invoke(b"let x=1", command=self.command_for(Path(directory) / "a.rv"))
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual(result.stdout, b"")
+            self.assertIn(b"revofmt.toml", result.stderr)
 
     def test_print_mode_formats_stdin_without_writing_files(self):
         with tempfile.TemporaryDirectory(prefix="revofmt-zed-") as directory:

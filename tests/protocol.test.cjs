@@ -19,8 +19,14 @@ test('shutdown responds null, rejects new requests, and exit ends normally', asy
   assert.equal((await c.format()).error.code, -32600); c.notify('exit'); assert.equal((await c.exited)[0], 0);
 });
 test('exit without shutdown ends with failure status', async t => { const c = client(t); c.notify('exit'); assert.equal((await c.exited)[0], 1); });
-for (const options of [{ indentWidth: 0 }, { indentWidth: 1.5 }, { lineWidth: 241 }, { timeoutMs: 0 }, { timeoutMs: 60001 }, { executable: 'relative' }, { executable: '/path\0bad' }, []]) {
+for (const options of [{ indentWidth: 0 }, { indentWidth: 1.5 }, { lineWidth: 241 }, { timeoutMs: 0 }, { timeoutMs: 60001 }, { maxBlankLines: 9 }, { maxBlankLines: -1 }, { maxBlankLines: 1.5 }, { maxBlankLines: '1' }, { maxBlankLines: null }, { indentStyle: 'tabs' }, { indentStyle: 'Space' }, { indentStyle: 1 }, { indentStyle: null }, { executable: 'relative' }, { executable: '/path\0bad' }, []]) {
   test(`rejects invalid initialization options ${JSON.stringify(options)}`, async t => { const c = client(t); assert.equal((await c.initialize(options)).error.code, -32602); assert.ok((await c.initialize()).result); });
+}
+for (const [options, message] of [[{ indentStyle: 'tabs' }, 'Invalid indentStyle'], [{ indentStyle: true }, 'Invalid indentStyle'], [{ maxBlankLines: 9 }, 'Invalid maxBlankLines'], [{ maxBlankLines: -1 }, 'Invalid maxBlankLines']]) {
+  test(`names the invalid option ${JSON.stringify(options)}`, async t => { const c = client(t); assert.equal((await c.initialize(options)).error.message, message); });
+}
+for (const options of [{ indentStyle: 'tab', maxBlankLines: 0 }, { indentStyle: 'space', maxBlankLines: 8 }, { indentWidth: 1, lineWidth: 20, indentStyle: 'tab', maxBlankLines: 1, timeoutMs: 1 }]) {
+  test(`accepts valid initialization options ${JSON.stringify(options)}`, async t => { const c = client(t); assert.ok((await c.initialize(options)).result); });
 }
 for (const params of [null, {}, { textDocument: { uri: 'file:///ok' }, options: {} }, { textDocument: { uri: 7 }, options: { tabSize: 2, insertSpaces: true } }, { textDocument: { uri: 'file:///ok' }, options: { tabSize: 0, insertSpaces: true } }]) {
   test(`invalid formatting request returns InvalidParams ${JSON.stringify(params)}`, async t => { const c = client(t); await c.initialize(); assert.equal((await c.request('textDocument/formatting', params)).error.code, -32602); });

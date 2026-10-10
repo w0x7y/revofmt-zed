@@ -18,6 +18,7 @@ pub fn validate_options(options: Option<&Value>) -> Result<(), String> {
     for (name, minimum, maximum) in [
         ("indentWidth", 1, 8),
         ("lineWidth", 20, 240),
+        ("maxBlankLines", 0, 8),
         ("timeoutMs", 1, 60000),
     ] {
         if let Some(value) = object.get(name) {
@@ -28,6 +29,11 @@ pub fn validate_options(options: Option<&Value>) -> Result<(), String> {
                     "{name} must be an integer from {minimum} to {maximum}"
                 ));
             }
+        }
+    }
+    if let Some(style) = object.get("indentStyle") {
+        if !matches!(style.as_str(), Some("space" | "tab")) {
+            return Err("indentStyle must be \"space\" or \"tab\"".into());
         }
     }
     Ok(())
@@ -79,6 +85,15 @@ mod tests {
             json!({"timeoutMs": 0}),
             json!({"timeoutMs": 60001}),
             json!({"timeoutMs": null}),
+            json!({"maxBlankLines": 9}),
+            json!({"maxBlankLines": -1}),
+            json!({"maxBlankLines": 1.5}),
+            json!({"maxBlankLines": "1"}),
+            json!({"maxBlankLines": null}),
+            json!({"indentStyle": "tabs"}),
+            json!({"indentStyle": "Space"}),
+            json!({"indentStyle": 1}),
+            json!({"indentStyle": null}),
         ] {
             assert!(
                 validate_options(Some(&options)).is_err(),
@@ -96,6 +111,9 @@ mod tests {
             json!({"indentWidth": 1, "lineWidth": 20, "timeoutMs": 1}),
             json!({"indentWidth": 8, "lineWidth": 240, "timeoutMs": 60000}),
             json!({"indentWidth": 2.0, "lineWidth": 80.0, "timeoutMs": 5000.0}),
+            json!({"indentStyle": "tab", "maxBlankLines": 0}),
+            json!({"indentStyle": "space", "maxBlankLines": 8}),
+            json!({"maxBlankLines": 1.0}),
             json!({"executable": "/opt/Revo Formatter/revofmt;literal"}),
         ] {
             assert!(

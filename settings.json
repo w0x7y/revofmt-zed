@@ -20,6 +20,8 @@
       "initialization_options": {
         "indentWidth": 2,
         "lineWidth": 80,
+        "indentStyle": "space",
+        "maxBlankLines": 1,
         "timeoutMs": 5000
       }
     }

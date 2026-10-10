@@ -24,12 +24,17 @@ process.stdin.on('end', () => {
     case 'nul': process.stdout.write('let changed = 1\0\n'); break;
     case 'bom': process.stdout.write('\ufefflet changed = 1\n'); break;
     case 'nonzero': process.stdout.write('let changed = 1\n'); process.exitCode = 2; break;
+    case 'config-error': process.stderr.write('bad revofmt.toml\n'); process.exitCode = 2; break;
+    case 'blank-error': process.stderr.write(' \n\t\n'); process.exitCode = 2; break;
+    case 'other-code-error': process.stderr.write('bad revofmt.toml\n'); process.exitCode = 1; break;
     case 'signal': process.kill(process.pid, 'SIGTERM'); break;
     case 'nonzero-inherited':
+    case 'config-error-inherited':
     case 'inherited': {
       const descendant = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 1200)'], { stdio: ['ignore', process.stdout, process.stderr] });
       descendant.unref(); process.stdout.write('let changed = 1\n');
-      if (mode === 'nonzero-inherited') process.exitCode = 2;
+      if (mode === 'config-error-inherited') process.stderr.write('bad revofmt.toml\n');
+      if (mode === 'nonzero-inherited' || mode === 'config-error-inherited') process.exitCode = 2;
       break;
     }
     case 'args': process.stdout.write(JSON.stringify(process.argv.slice(2)) + '\n'); break;
