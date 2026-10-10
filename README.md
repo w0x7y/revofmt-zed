@@ -11,9 +11,9 @@ recognition, highlighting and the Revolt language server.
 ## get started
 
 you need zed, the Revo language extension and
-[revofmt](https://github.com/w0x7y/revo-formatter#install) on your PATH.
-the formatter's published binary supports linux x86_64 GNU. this extension
-doesn't install it. zed supplies Node for the formatting server.
+[revofmt](https://github.com/w0x7y/revo-formatter#install) 0.2.0 or newer on
+your PATH. the formatter's published binary supports linux x86_64 GNU. this
+extension doesn't install it. zed supplies Node for the formatting server.
 
 ```sh
 revofmt --version
@@ -44,6 +44,8 @@ installing the extension doesn't apply these settings automatically.
       "initialization_options": {
         "indentWidth": 2,
         "lineWidth": 80,
+        "indentStyle": "space",
+        "maxBlankLines": 1,
         "timeoutMs": 5000
       }
     }
@@ -75,9 +77,31 @@ for an unnamed buffer, select `Revo` as the language first.
 if zed can't find revofmt, add `"executable": "/absolute/path/to/revofmt"` to
 `initialization_options`. paths are literal; `~` and shell commands aren't expanded.
 
-`indentWidth` accepts 1 to 8 spaces. `lineWidth` accepts 20 to 240 columns and
-is a soft target. `timeoutMs` accepts 1 to 60,000 milliseconds.
-restart the language server after changing these options.
+`indentWidth` accepts 1 to 8 columns per indentation level. `lineWidth` accepts
+20 to 240 columns and is a soft target. `indentStyle` is `"space"` or `"tab"`;
+in tab mode `indentWidth` is the tab's display width when fitting lines.
+`maxBlankLines` accepts 0 to 8 consecutive blank lines to keep. `timeoutMs`
+accepts 1 to 60,000 milliseconds. restart the language server after changing
+these options.
+
+### project configuration
+
+these options need revofmt 0.2.0 or newer. the server starts the formatter with
+`--prefer-config`, which older releases reject with exit status 2, so nothing
+is formatted.
+
+a project `revofmt.toml` overrides these layout settings for files beneath it.
+revofmt looks in the file's directory, then in each ancestor directory. keys
+the file omits use revofmt's built-in defaults rather than your zed settings.
+see the [configuration guide](https://github.com/w0x7y/revo-formatter/blob/main/docs/formatter.md#configuration).
+
+the server sends the buffer's path only for a `file:` document, so the file
+needn't exist on disk. unnamed buffers and other schemes never look for a
+`revofmt.toml` and use the zed settings.
+
+when revofmt exits with status 2, as for a malformed `revofmt.toml` or a syntax
+error, zed shows its message as an error that starts with `revofmt:`. the
+document stays unchanged.
 
 to format on save, change `"format_on_save": "off"` to `"format_on_save": "on"`.
 keep both whitespace settings `false`, including for manual formatting. zed's
@@ -107,13 +131,14 @@ rustup target add wasm32-wasip2
 cargo build --release --target wasm32-wasip2 --locked
 ```
 
-For formatter `v0.1.2` or a source build using Revo `e94e6d8` or later, add
-`REVOFMT_CURRENT_SYNTAX=1` to verify range adjacency and invalid interpolation
-mode rejection without edits. CI enables these checks with the pinned `v0.1.2`
-formatter. Leave the option unset when testing an older formatter.
+the checks need formatter `v0.2.0` or newer. With it or a source build using
+Revo `e94e6d8` or later, add `REVOFMT_CURRENT_SYNTAX=1` to verify range
+adjacency and invalid interpolation mode rejection without edits. CI enables
+these checks with the pinned `v0.2.0` formatter.
 
-the checks cover framed LSP requests, real CLI formatting, process failures,
-resource limits, stale edits and the launcher's downloaded-file checks.
+the checks cover framed LSP requests, real CLI formatting, project
+configuration, process failures, resource limits, stale edits and the
+launcher's downloaded-file checks.
 [the implementation plan](docs/superpowers/plans/2026-10-07-formatting-language-server.md)
 describes the protocol. [publishing](docs/publishing.md) describes the server
 release and registry submission.

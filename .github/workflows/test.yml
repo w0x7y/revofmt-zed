@@ -28,9 +28,9 @@ jobs:
           cd "$RUNNER_TEMP/revofmt"
           for file in revofmt-linux-x86_64-gnu LICENSE REVO-LICENSE.txt THIRD_PARTY.md; do
             curl --fail --location --silent --show-error --output "$file" \
-              "https://github.com/w0x7y/revo-formatter/releases/download/v0.1.2/$file"
+              "https://github.com/w0x7y/revo-formatter/releases/download/v0.2.0/$file"
           done
-          echo "515bc4c74e20f52b111310d27c63fe3bbf33bf58ed17c181815ac39408e3cb6e  revofmt-linux-x86_64-gnu" | sha256sum --check
+          echo "497b274d0e26f479f1af64177b26b9ca261fb1e07d347cdd0596c79c22264349  revofmt-linux-x86_64-gnu" | sha256sum --check
           chmod +x revofmt-linux-x86_64-gnu
           echo "REVOFMT_BIN=$RUNNER_TEMP/revofmt/revofmt-linux-x86_64-gnu" >> "$GITHUB_ENV"
       - name: Check protocol, launcher and real formatting
