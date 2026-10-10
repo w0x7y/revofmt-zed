@@ -25,6 +25,7 @@ process.stdin.on('end', () => {
     case 'bom': process.stdout.write('\ufefflet changed = 1\n'); break;
     case 'nonzero': process.stdout.write('let changed = 1\n'); process.exitCode = 2; break;
     case 'config-error': process.stderr.write('bad revofmt.toml\n'); process.exitCode = 2; break;
+    case 'prefixed-error': process.stderr.write('revofmt: stdin: expected identifier at byte 10\n'); process.exitCode = 2; break;
     case 'blank-error': process.stderr.write(' \n\t\n'); process.exitCode = 2; break;
     case 'other-code-error': process.stderr.write('bad revofmt.toml\n'); process.exitCode = 1; break;
     case 'signal': process.kill(process.pid, 'SIGTERM'); break;

@@ -52,6 +52,11 @@ test('a configuration error is shown as an error message before the empty result
   assert.deepEqual(c.notifications, [{ jsonrpc: '2.0', method: 'window/showMessage', params: { type: 1, message: 'revofmt: bad revofmt.toml' } }]);
   assert.ok(c.messages.indexOf(c.notifications[0]) < c.messages.indexOf(response));
 });
+test('a diagnostic that already starts with revofmt: is shown unchanged, not prefixed twice', async t => {
+  const c = client(t); await c.initialize(); c.open('prefixed-error'); const response = await c.format();
+  assert.deepEqual(response.result, []);
+  assert.deepEqual(c.notifications.map(n => n.params), [{ type: 1, message: 'revofmt: stdin: expected identifier at byte 10' }]);
+});
 test('a configuration error with inherited pipes still reports the stderr collected so far promptly', async t => {
   const c = client(t); await c.initialize(); c.open('config-error-inherited'); const start = Date.now();
   assert.deepEqual((await c.format()).result, []); assert.ok(Date.now() - start < 700);

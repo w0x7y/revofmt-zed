@@ -10,7 +10,7 @@ pub const SERVER_FILES: &[(&str, &str)] = &[
     ),
     (
         "server/main.cjs",
-        "8758eb716e26ded8a79e4335a2dc80581012a13c9aef901170a1ae69e031ccdc",
+        "86ff20b69b57fb5e26c090196b388021ebf12bccb3b45d11f7b843c5aeeb2241",
     ),
     (
         "server/protocol.cjs",

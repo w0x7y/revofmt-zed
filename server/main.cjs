@@ -79,7 +79,8 @@ function run(executable) {
       jobs.delete(uri); requests.delete(id);
       const current = documents.items.get(uri) === document && !shutdown;
       // Zed has no other way to show why the CLI refused, for example a malformed revofmt.toml.
-      if (diagnostic !== undefined && current) transport.send({ jsonrpc: '2.0', method: 'window/showMessage', params: { type: 1, message: 'revofmt: ' + diagnostic } });
+      // The CLI's own stderr already starts with "revofmt: "; add the prefix only when it is missing.
+      if (diagnostic !== undefined && current) transport.send({ jsonrpc: '2.0', method: 'window/showMessage', params: { type: 1, message: diagnostic.startsWith('revofmt:') ? diagnostic : 'revofmt: ' + diagnostic } });
       respond(id, output !== null && current ? edits(document.text, output) : []);
     });
   }

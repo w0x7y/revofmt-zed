@@ -101,7 +101,8 @@ needn't exist on disk. unnamed buffers and other schemes never look for a
 
 when revofmt exits with status 2, as for a malformed `revofmt.toml` or a syntax
 error, zed shows its message as an error that starts with `revofmt:`. the
-document stays unchanged.
+formatter's own messages already start that way and are shown unchanged; any
+other text gets the prefix added. the document stays unchanged.
 
 to format on save, change `"format_on_save": "off"` to `"format_on_save": "on"`.
 keep both whitespace settings `false`, including for manual formatting. zed's

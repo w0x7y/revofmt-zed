@@ -44,7 +44,7 @@ test('real CLI preserves opaque literal/comment bytes with UTF-16 edit coordinat
 test('real CLI syntax failure produces no edits and shows the CLI diagnostic', async t => {
   const c = client(t); await c.initialize(); c.open('fn broken('); assert.deepEqual((await c.format()).result, []);
   assert.equal(c.notifications.length, 1); const { method, params } = c.notifications[0];
-  assert.equal(method, 'window/showMessage'); assert.equal(params.type, 1); assert.match(params.message, /^revofmt: .*stdin/);
+  assert.equal(method, 'window/showMessage'); assert.equal(params.type, 1); assert.match(params.message, /^revofmt: .*stdin/); assert.doesNotMatch(params.message, /^revofmt: revofmt:/);
   assert.equal(params.message, params.message.trim());
 });
 function project(t, config) {
@@ -79,7 +79,7 @@ test('a malformed revofmt.toml produces no edits and an error message naming it'
   const directory = project(t, 'indent_style = "tabs"\n'); const source = 'fn f() do\nlet x=1\nend'; const uri = fileUri(path.join(directory, 'a.rv'));
   const c = client(t); await c.initialize(); c.open(source, uri); assert.deepEqual((await c.format(uri)).result, []);
   assert.equal(c.notifications.length, 1); const { method, params } = c.notifications[0];
-  assert.equal(method, 'window/showMessage'); assert.equal(params.type, 1); assert.match(params.message, /^revofmt: /); assert.ok(params.message.includes('revofmt.toml'), params.message);
+  assert.equal(method, 'window/showMessage'); assert.equal(params.type, 1); assert.match(params.message, /^revofmt: /); assert.doesNotMatch(params.message, /^revofmt: revofmt:/); assert.ok(params.message.includes('revofmt.toml'), params.message);
 });
 test('real CLI preserves supported interpolation modes', async t => {
   // Revo Parser.zig covers :v, :?, :p and the lone :d atom.
